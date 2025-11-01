@@ -1,17 +1,82 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Eight Queens NFT - GitHub Pages</title>
-<link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <meta charset="UTF-8">
+  <title>Teste Arc Testnet</title>
 </head>
 <body>
-<h1>Eight Queens - Arc Testnet NFT</h1>
-<div id="board"></div>
-<button id="mintBtn" disabled>Mint NFT</button>
-<div id="status"></div>
+  <h2>Teste de Transação na Arc Testnet</h2>
+  <button id="connectBtn">Conectar Carteira</button>
+  <button id="txBtn" disabled>Enviar Transação</button>
+  <div id="status" style="margin-top:10px; font-family:Arial; line-height:1.4;"></div>
 
-<script src="app.js"></script>
+  <!-- ethers.js v6 -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
+  <script>
+    let provider, signer;
+
+    const connectBtn = document.getElementById('connectBtn');
+    const txBtn = document.getElementById('txBtn');
+    const status = document.getElementById('status');
+
+    connectBtn.onclick = async () => {
+      try {
+        if (!window.ethereum) {
+          alert("Instale a carteira Rabby ou MetaMask.");
+          return;
+        }
+
+        provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+
+        const network = await provider.getNetwork();
+        const address = await signer.getAddress();
+
+        status.innerHTML = `
+          ✅ Carteira conectada: <b>${address}</b><br>
+          🌐 Rede: ${network.name} (ChainId: ${network.chainId})
+        `;
+
+        if (Number(network.chainId) !== 5042002) {
+          alert("⚠️ Mude para a Arc Testnet na sua carteira.");
+          txBtn.disabled = true;
+        } else {
+          txBtn.disabled = false;
+        }
+
+      } catch (err) {
+        console.error(err);
+        status.textContent = "❌ Erro ao conectar: " + (err.message || err);
+      }
+    };
+
+    txBtn.onclick = async () => {
+      try {
+        if (!signer) {
+          alert("Conecte a carteira primeiro!");
+          return;
+        }
+
+        status.textContent = "📝 Preparando transação...";
+        const tx = await signer.sendTransaction({
+          to: await signer.getAddress(),
+          value: 0n // apenas para assinar, sem enviar fundos
+        });
+
+        const explorer = `https://testnet.arcscan.app/tx/${tx.hash}`;
+        status.innerHTML = `
+          💳 Transação enviada: <a href="${explorer}" target="_blank">${tx.hash}</a>
+        `;
+
+        const receipt = await tx.wait();
+        status.innerHTML += `<br>✅ Confirmada no bloco ${receipt.blockNumber}`;
+
+      } catch (err) {
+        console.error(err);
+        status.textContent = "❌ Erro ao enviar transação: " + (err.message || err);
+      }
+    };
+  </script>
 </body>
 </html>
